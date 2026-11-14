@@ -57,6 +57,18 @@ create table if not exists public.trip_look_claims (
   updated_at timestamptz not null default now()
 );
 
+alter table public.trip_look_claims
+  drop constraint if exists trip_look_claims_look_id_check;
+alter table public.trip_look_claims
+  add constraint trip_look_claims_look_id_check
+  check (look_id in ('blue-hour','cream-crochet','technicolor','pink-afterparty','pastel-power','teal-disco','tie-and-sparkle','disco-tomato'));
+
+alter table public.trip_look_claims
+  drop constraint if exists trip_look_claims_person_check;
+alter table public.trip_look_claims
+  add constraint trip_look_claims_person_check
+  check (person in ('Katie','Kristi','Vanessa','Becca','Melissa'));
+
 alter table public.trip_look_claims enable row level security;
 
 drop policy if exists "Look claims are viewable by visitors" on public.trip_look_claims;
@@ -77,7 +89,7 @@ as $$
 declare
   current_owner text;
 begin
-  if p_person not in ('Katie','Kristi','Vanessa','Becca','Mel') then
+  if p_person not in ('Katie','Kristi','Vanessa','Becca','Melissa') then
     raise exception 'Choose one of the five trip members.';
   end if;
   if p_look_id not in ('blue-hour','cream-crochet','technicolor','pink-afterparty','pastel-power','teal-disco','tie-and-sparkle','disco-tomato') then
