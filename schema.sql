@@ -46,3 +46,80 @@ exception
   when undefined_object then
     raise notice 'Realtime publication is unavailable; the app will still sync on refresh.';
 end $$;
+
+
+-- Exclusive concert-look reservations. One person can hold one look, and
+-- each look can be held by one person. Writes go through a constrained RPC.
+create table if not exists public.trip_look_claims (
+  look_id text primary key check (look_id ~ '^[0-7]$'),
+  person text not null unique
+    check (person in ('Katie','Kristi','Vanessa','Becca','Mel')),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.trip_look_claims enable row level security;
+
+drop policy if exists "Look claims are viewable by visitors" on public.trip_look_claims;
+create policy "Look claims are viewable by visitors"
+  on public.trip_look_claims for select
+  to anon, authenticated
+  using (true);
+
+grant select on table public.trip_look_claims to anon, authenticated;
+revoke insert, update, delete on table public.trip_look_claims from anon, authenticated;
+
+create or replace function public.claim_trip_look(p_person text, p_look_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_owner text;
+begin
+  if p_person not in ('Katie','Kristi','Vanessa','Becca','Mel') then
+    raise exception 'Choose one of the five trip members.';
+  end if;
+  if p_look_id !~ '^[0-7]$' then
+    raise exception 'Unknown outfit.';
+  end if;
+
+  -- Serialize simultaneous claims. The unique constraints provide a second guard.
+  perform pg_advisory_xact_lock(772001);
+
+  select person into current_owner
+    from public.trip_look_claims
+    where look_id = p_look_id
+    for update;
+
+  if current_owner = p_person then
+    delete from public.trip_look_claims
+      where look_id = p_look_id and person = p_person;
+    return jsonb_build_object('ok', true, 'action', 'released');
+  end if;
+
+  if current_owner is not null then
+    return jsonb_build_object('ok', false, 'action', 'unavailable', 'owner', current_owner);
+  end if;
+
+  -- A friend may only hold one look; switching releases their prior claim.
+  delete from public.trip_look_claims where person = p_person;
+
+  insert into public.trip_look_claims (look_id, person, updated_at)
+  values (p_look_id, p_person, now());
+
+  return jsonb_build_object('ok', true, 'action', 'claimed');
+end;
+$$;
+
+revoke all on function public.claim_trip_look(text, text) from public;
+grant execute on function public.claim_trip_look(text, text) to anon, authenticated;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.trip_look_claims;
+exception
+  when duplicate_object then null;
+  when undefined_object then
+    raise notice 'Realtime publication is unavailable; claims will refresh on page reload.';
+end $$;
