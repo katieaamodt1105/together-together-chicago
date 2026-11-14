@@ -1,1 +1,12 @@
-placeholder
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f3efe8"><title>Together, Together — Chicago 2027</title></head>
+<body><p style="font-family:Arial;padding:30px">Loading the trip planner…</p>
+<script>
+(async()=>{try{
+ const parts=await Promise.all([0,1,2,3].map(i=>fetch('./payload/part-'+i+'.txt').then(r=>{if(!r.ok)throw Error('Missing planner file '+i);return r.text()})));
+ const bytes=Uint8Array.from(atob(parts.join('')),c=>c.charCodeAt(0));
+ let html=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+ html=html.replace("if(el.dataset.leg)f[el.dataset.leg][el.dataset.field]=v;else f[el.dataset.field]=v;","if(el.dataset.leg){f[el.dataset.leg]??={};f[el.dataset.leg][el.dataset.field]=v;}else{f[el.dataset.field]=v;}");
+ document.open();document.write(html);document.close();
+}catch(e){document.body.textContent='The trip planner could not load: '+e;console.error(e)}})();
+</script></body></html>
