@@ -11,6 +11,10 @@ create table if not exists public.trip_data (
 
 alter table public.trip_data enable row level security;
 
+-- Explicit Data API grants: policies below still control which rows are accessible.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on table public.trip_data to anon, authenticated;
+
 drop policy if exists "Trip is viewable by visitors" on public.trip_data;
 create policy "Trip is viewable by visitors"
   on public.trip_data for select
