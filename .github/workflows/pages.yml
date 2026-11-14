@@ -22,28 +22,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Inspect planner structure
-        run: |
-          python - <<'PY'
-          import base64, gzip, pathlib, re
-          encoded = ''.join(pathlib.Path(f'payload/part-{i}.txt').read_text().strip() for i in range(4))
-          html = gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
-          print('APP_HTML_LENGTH', len(html))
-          needles = [
-              "UNTIL WE'RE THERE", "function tick", "function renderLooks", "lookvote",
-              "const N=", "let me=", "function renderPlan", "closeIdentity",
-              "identity", "supabase", "function persist", "function render()",
-              "addEventListener('click'", "function who()", "dateVotes", "lookVotes",
-              "THE GIRLS ARE", "class=\"hero\"", "class=\"count\""
-          ]
-          for needle in needles:
-              i = html.lower().find(needle.lower())
-              if i >= 0:
-                  print('\\n--- NEEDLE', needle, 'AT', i, '---')
-                  print(html[max(0,i-450):min(len(html),i+1700)])
-          print('--- APP START ---')
-          print(html[:8500])
-          PY
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
