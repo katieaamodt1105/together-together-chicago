@@ -176,7 +176,15 @@ async function fetchShared(){
  var r=await fetch(SUPABASE_URL+"/rest/v1/trip_data?id=eq.1&select=data,updated_at",{headers:headers,cache:"no-store"});
  if(!r.ok)throw new Error("Database read failed ("+r.status+")");
  var rows=await r.json();
- if(rows&&rows[0]&&rows[0].data){data=Object.assign({},JSON.parse(JSON.stringify(DEFAULTS)),rows[0].data);data.dateVotes=data.dateVotes||{};data.stayVotes=data.stayVotes||{};data.lookClaims=data.lookClaims||{};data.check=data.check||DEFAULTS.check;isOnline=true;return true;}
+ if(rows&&rows[0]&&rows[0].data){
+  data=Object.assign({},JSON.parse(JSON.stringify(DEFAULTS)),rows[0].data);
+  data.dateVotes=data.dateVotes||{};data.stayVotes=data.stayVotes||{};data.check=data.check||DEFAULTS.check;
+  var cr=await fetch(SUPABASE_URL+"/rest/v1/trip_look_claims?select=look_id,person",{headers:headers,cache:"no-store"});
+  if(!cr.ok)throw new Error("Outfit claims could not be loaded ("+cr.status+")");
+  var claimRows=await cr.json();data.lookClaims={};
+  claimRows.forEach(function(row){data.lookClaims[row.look_id]=row.person;});
+  isOnline=true;return true;
+ }
  isOnline=false;return false;
 }
 async function savePatch(patch){
@@ -277,13 +285,17 @@ function bind(){
  document.querySelectorAll(".stay-vote").forEach(function(b){b.addEventListener("click",function(){if(!activeName)return;selectedStay=this.dataset.stay;renderStayChoices();renderIdentity();savePatch({stayVotes:Object.assign({},data.stayVotes||{},(function(){var x={};x[activeName]=selectedStay;return x;})())});});});
  document.querySelectorAll(".claim-btn").forEach(function(b){b.addEventListener("click",async function(){
   if(!activeName)return;
-  var id=this.dataset.claim;var claims=Object.assign({},data.lookClaims||{});
-  if(claims[id]===activeName){delete claims[id];}
-  else if(!claims[id]){
-   Object.keys(claims).forEach(function(k){if(claims[k]===activeName)delete claims[k];});
-   claims[id]=activeName;
-  }else{return;}
-  await savePatch({lookClaims:claims});
+  var id=this.dataset.claim;
+  this.disabled=true;
+  try{
+   var response=await fetch(SUPABASE_URL+"/rest/v1/rpc/claim_trip_look",{method:"POST",headers:headers,body:JSON.stringify({p_person:activeName,p_look_id:id})});
+   if(!response.ok)throw new Error("Claim request failed ("+response.status+")");
+   var result=await response.json();
+   if(!result.ok&&result.action==="unavailable")setStatus("That lewk was just claimed by "+result.owner+". Pick another.");
+   await fetchShared();renderAll();
+   if(result.action==="claimed")setStatus("Lewk claimed by "+activeName+".");
+   else if(result.action==="released")setStatus("Lewk released. It's open for the group.");
+  }catch(e){setStatus("Could not save the lewk claim. Refresh and try again.");console.error(e);this.disabled=false;}
  });});
  el("notes").addEventListener("input",function(){var value=this.value;clearTimeout(saveTimer);setStatus("Saving shared notes…");saveTimer=setTimeout(function(){savePatch({notes:value});},650);});
 }
