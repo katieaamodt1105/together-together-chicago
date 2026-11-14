@@ -22,6 +22,25 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Inspect planner structure
+        run: |
+          python - <<'PY'
+          import base64, gzip, pathlib, re
+          encoded = ''.join(pathlib.Path(f'payload/part-{i}.txt').read_text().strip() for i in range(4))
+          html = gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
+          print('APP_HTML_LENGTH', len(html))
+          for label, pattern in [
+              ('COUNTDOWN', r'(?i).{0,100}(?:until.{0,40}there|countdown|days.{0,20}harry).{0,160}'),
+              ('VOTE_UI', r'(?i).{0,120}(?:vote|voting|cast your vote).{0,200}'),
+              ('NAME_UI', r'(?i).{0,100}(?:who are you|your name|select.*name|choose.*name).{0,160}'),
+          ]:
+              print('---', label, '---')
+              matches = list(re.finditer(pattern, html))
+              for m in matches[:12]:
+                  print(re.sub(r'\\s+', ' ', m.group(0))[:420])
+          print('--- TITLE ---')
+          print(re.findall(r'<title[^>]*>(.*?)</title>', html, re.I | re.S)[:1])
+          PY
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
