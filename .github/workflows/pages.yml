@@ -27,7 +27,7 @@ jobs:
           python - <<'PY'
           import base64, gzip, pathlib, re
           h=gzip.decompress(base64.b64decode(''.join(pathlib.Path(f'payload/part-{i}.txt').read_text().strip() for i in range(4)))).decode()
-          for label, needle, size in [('HEAD','<body',7000),('COUNTDOWN','UNTIL WE\\'RE THERE',900),('LOOKS','lookvote',2300),('LOOK_RENDER','function renderLooks',2400),('CLICK','data-action=\\"lookvote',1200),('STATE','lookVotes',1400)]:
+          for label, needle, size in [("HEAD","<body",7000),("COUNTDOWN","UNTIL WE",900),("LOOKS","lookvote",2300),("LOOK_RENDER","function renderLooks",2400),("CLICK",'data-action="lookvote',1200),("STATE","lookVotes",1400)]:
               print('\\n### '+label)
               p=h.find(needle)
               print(h[max(0,p-500):p+size] if p>=0 else 'NOT FOUND')
