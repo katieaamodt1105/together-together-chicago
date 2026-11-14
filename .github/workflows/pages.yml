@@ -29,17 +29,20 @@ jobs:
           encoded = ''.join(pathlib.Path(f'payload/part-{i}.txt').read_text().strip() for i in range(4))
           html = gzip.decompress(base64.b64decode(encoded)).decode('utf-8')
           print('APP_HTML_LENGTH', len(html))
-          for label, pattern in [
-              ('COUNTDOWN', r'(?i).{0,100}(?:until.{0,40}there|countdown|days.{0,20}harry).{0,160}'),
-              ('VOTE_UI', r'(?i).{0,120}(?:vote|voting|cast your vote).{0,200}'),
-              ('NAME_UI', r'(?i).{0,100}(?:who are you|your name|select.*name|choose.*name).{0,160}'),
-          ]:
-              print('---', label, '---')
-              matches = list(re.finditer(pattern, html))
-              for m in matches[:12]:
-                  print(re.sub(r'\\s+', ' ', m.group(0))[:420])
-          print('--- TITLE ---')
-          print(re.findall(r'<title[^>]*>(.*?)</title>', html, re.I | re.S)[:1])
+          needles = [
+              "UNTIL WE'RE THERE", "function tick", "function renderLooks", "lookvote",
+              "const N=", "let me=", "function renderPlan", "closeIdentity",
+              "identity", "supabase", "function persist", "function render()",
+              "addEventListener('click'", "function who()", "dateVotes", "lookVotes",
+              "THE GIRLS ARE", "class=\"hero\"", "class=\"count\""
+          ]
+          for needle in needles:
+              i = html.lower().find(needle.lower())
+              if i >= 0:
+                  print('\\n--- NEEDLE', needle, 'AT', i, '---')
+                  print(html[max(0,i-450):min(len(html),i+1700)])
+          print('--- APP START ---')
+          print(html[:8500])
           PY
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
