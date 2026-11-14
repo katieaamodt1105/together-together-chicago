@@ -22,23 +22,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Inspect trip planner
-        run: |
-          python - <<'PY'
-          import base64, gzip, pathlib
-          h=gzip.decompress(base64.b64decode(''.join(pathlib.Path(f'payload/part-{i}.txt').read_text().strip() for i in range(4)))).decode()
-          for label, needle, size in [
-              ('INIT','const DEF=',2200),
-              ('HANDLER',"document.addEventListener('click'",5000),
-              ('IDENTITY','savePerson',2200),
-              ('ME','localStorage.getItem',1300),
-              ('RENDER','function renderLooks(){',2200),
-              ('COUNT','timer',1400),
-          ]:
-              print('\\n### '+label)
-              p=h.find(needle)
-              print(h[max(0,p-350):p+size] if p>=0 else 'NOT FOUND')
-          PY
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
