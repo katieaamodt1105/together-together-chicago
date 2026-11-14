@@ -51,9 +51,9 @@ end $$;
 -- Exclusive concert-look reservations. One person can hold one look, and
 -- each look can be held by one person. Writes go through a constrained RPC.
 create table if not exists public.trip_look_claims (
-  look_id text primary key check (look_id ~ '^[0-7]$'),
+  look_id text primary key check (look_id in ('blue-hour','cream-crochet','technicolor','pink-afterparty','pastel-power','teal-disco','tie-and-sparkle','disco-tomato')),
   person text not null unique
-    check (person in ('Katie','Kristi','Vanessa','Becca','Mel')),
+    check (person in ('Katie','Kristi','Vanessa','Becca','Melissa')),
   updated_at timestamptz not null default now()
 );
 
@@ -80,7 +80,7 @@ begin
   if p_person not in ('Katie','Kristi','Vanessa','Becca','Mel') then
     raise exception 'Choose one of the five trip members.';
   end if;
-  if p_look_id !~ '^[0-7]$' then
+  if p_look_id not in ('blue-hour','cream-crochet','technicolor','pink-afterparty','pastel-power','teal-disco','tie-and-sparkle','disco-tomato') then
     raise exception 'Unknown outfit.';
   end if;
 
